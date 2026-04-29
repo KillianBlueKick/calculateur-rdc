@@ -17,7 +17,7 @@ export default function ResultsPanel({ calcs, globals }) {
 
   const {
     revenue, totalCost, variableCost, fixedCostPerContainer,
-    profit, marginPct, cartonsSold, breakEvenCartons, breakEvenPct,
+    profit, marginPct, cartonsSold, breakEvenCartons, breakEvenReachable, breakEvenPct,
     cartonsMissing, progressPct, marginPerCarton, costPerCarton,
     fillPct, capacity, weightedPrice,
   } = calcs;
@@ -86,18 +86,32 @@ export default function ResultsPanel({ calcs, globals }) {
       {/* Seuil */}
       <div className="bg-slate-50 rounded-lg p-4">
         <p className="text-xs text-slate-500 mb-1">Seuil de rentabilité</p>
-        <p className="text-lg font-semibold">{breakEvenCartons} cartons</p>
-        <p className="text-xs text-slate-400 mt-1">
-          {Math.round(breakEvenPct)}% du conteneur à remplir
-        </p>
-        <div className="h-2 bg-slate-200 rounded-full overflow-hidden mt-2">
-          <div
-            className={`h-full transition-all duration-500 ${
-              cartonsSold >= breakEvenCartons ? 'bg-emerald-500' : 'bg-amber-400'
-            }`}
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+        {breakEvenReachable ? (
+          <>
+            <p className="text-lg font-semibold">{breakEvenCartons} cartons</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {Math.round(breakEvenPct)}% du conteneur à remplir
+            </p>
+            <div className="h-2 bg-slate-200 rounded-full overflow-hidden mt-2">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  cartonsSold >= breakEvenCartons ? 'bg-emerald-500' : 'bg-amber-400'
+                }`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-lg font-semibold text-red-600">Impossible</p>
+            <p className="text-xs text-red-400 mt-1">
+              Le conteneur plein ne couvre pas les coûts ({cartonsMissing > 0 ? `il manque ${cartonsMissing} cartons` : 'augmentez les prix ou réduisez les frais'})
+            </p>
+            <div className="h-2 bg-red-200 rounded-full overflow-hidden mt-2">
+              <div className="h-full bg-red-400 transition-all duration-500" style={{ width: `${progressPct}%` }} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Marge par carton */}

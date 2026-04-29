@@ -37,11 +37,12 @@ export function useCalculations(state) {
   const profit           = revenue - totalCost;
   const costPerCarton    = capacity > 0 ? variableCost / capacity : 0;
   const marginPerCarton  = weightedPrice - costPerCarton;
-  const breakEvenCartons = weightedPrice > 0 ? Math.ceil(totalCost / weightedPrice) : 0;
-  const breakEvenPct     = capacity > 0 ? (breakEvenCartons / capacity) * 100 : 0;
-  const cartonsMissing   = profit < 0 && weightedPrice > 0 ? Math.ceil((totalCost - revenue) / weightedPrice) : 0;
-  const marginPct        = revenue > 0 ? (profit / revenue) * 100 : 0;
-  const progressPct      = breakEvenCartons > 0 ? Math.min(100, (cartonsSold / breakEvenCartons) * 100) : 100;
+  const breakEvenCartons    = weightedPrice > 0 ? Math.ceil(totalCost / weightedPrice) : 0;
+  const breakEvenReachable  = capacity > 0 && breakEvenCartons <= capacity;
+  const breakEvenPct        = capacity > 0 ? Math.min((breakEvenCartons / capacity) * 100, 100) : 0;
+  const cartonsMissing      = profit < 0 && weightedPrice > 0 ? Math.ceil((totalCost - revenue) / weightedPrice) : 0;
+  const marginPct           = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const progressPct         = breakEvenCartons > 0 ? Math.min(100, (cartonsSold / breakEvenCartons) * 100) : 100;
 
   return {
     containerVol, maxUsableVol, usedVol, capacity, weightedPrice, fillPct,
@@ -49,6 +50,6 @@ export function useCalculations(state) {
     variableCost, fixedCostPerContainer, totalCost,
     cartonsSold, revenue, profit,
     costPerCarton, marginPerCarton,
-    breakEvenCartons, breakEvenPct, cartonsMissing, marginPct, progressPct,
+    breakEvenCartons, breakEvenReachable, breakEvenPct, cartonsMissing, marginPct, progressPct,
   };
 }

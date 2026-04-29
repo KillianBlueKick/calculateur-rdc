@@ -19,7 +19,7 @@ export default function ResultsPanel({ calcs, globals }) {
     revenue, totalCost, variableCost, fixedCostPerContainer,
     profit, marginPct, cartonsSold, breakEvenCartons, breakEvenPct,
     cartonsMissing, progressPct, marginPerCarton, costPerCarton,
-    fillPct,
+    fillPct, capacity,
   } = calcs;
 
   const badge = marginBadge(marginPct);
@@ -29,7 +29,7 @@ export default function ResultsPanel({ calcs, globals }) {
     const text = [
       '=== Résumé conteneur RDC ===',
       `Date : ${date}`,
-      `Cartons vendus : ${cartonsSold}/${globals.capacity} (${Math.round(fillPct)}%)`,
+      `Cartons vendus : ${cartonsSold}/${capacity} (${Math.round(fillPct)}%)`,
       `Revenu : ${fmt(revenue)}`,
       `Coûts variables : ${fmt(variableCost)}`,
       `Coûts fixes (par conteneur) : ${fmt(fixedCostPerContainer)}`,
@@ -110,11 +110,16 @@ export default function ResultsPanel({ calcs, globals }) {
       </div>
 
       {/* Widget conteneur */}
-      <ContainerWidget cartonsSold={cartonsSold} capacity={globals.capacity} />
+      <ContainerWidget
+        cartonsSold={cartonsSold}
+        capacity={calcs.capacity}
+        usedVol={calcs.usedVol}
+        containerVol={calcs.containerVol}
+      />
 
       {/* Graphique */}
       <BreakevenChart
-        capacity={globals.capacity}
+        capacity={capacity}
         price={globals.price}
         totalCost={totalCost}
         cartonsSold={cartonsSold}

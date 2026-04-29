@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getMaxUsableVolume, cartonVolume } from '../data/containers';
 
 const STORAGE_KEY = 'rdc-calc-v2';
 const SCENARIOS_KEY = 'rdc-calc-v2-scenarios';
@@ -41,14 +42,40 @@ export const defaultFees = {
   ],
 };
 
-export const defaultGlobals = { price: 100, capacity: 430, containers: 1, sold: 430 };
+export const defaultGlobals = { price: 100, containers: 1, sold: 430 };
+
+export const defaultCartonFormats = [
+  { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: 430, isPreset: true, presetId: 'standard' },
+];
+
+export const defaultContainerType = '40hc';
+
+function migrate(saved) {
+  // Add containerType if missing (old saves)
+  if (!saved.containerType) saved.containerType = defaultContainerType;
+
+  // Add cartonFormats if missing — migrate from old globals.capacity
+  if (!saved.cartonFormats) {
+    const oldCapacity = saved.globals?.capacity ?? 430;
+    saved.cartonFormats = [
+      { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: oldCapacity, isPreset: true, presetId: 'standard' },
+    ];
+  }
+
+  // Remove legacy capacity from globals
+  if (saved.globals) delete saved.globals.capacity;
+
+  return saved;
+}
 
 function loadInitialState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) return migrate(JSON.parse(saved));
   } catch (e) {}
   return {
+    containerType: defaultContainerType,
+    cartonFormats: JSON.parse(JSON.stringify(defaultCartonFormats)),
     fees: JSON.parse(JSON.stringify(defaultFees)),
     custom: [],
     globals: { ...defaultGlobals },
@@ -63,20 +90,24 @@ function loadScenarios() {
   return [];
 }
 
+function capSold(state) {
+  const capacity = state.cartonFormats.reduce((s, f) => s + f.qty, 0);
+  if (state.globals.sold > capacity) {
+    return { ...state, globals: { ...state.globals, sold: capacity } };
+  }
+  return state;
+}
+
 export function useCalculatorState() {
   const [state, setState] = useState(loadInitialState);
   const [scenarios, setScenarios] = useState(loadScenarios);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
   }, [state]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(SCENARIOS_KEY, JSON.stringify(scenarios));
-    } catch (e) {}
+    try { localStorage.setItem(SCENARIOS_KEY, JSON.stringify(scenarios)); } catch (e) {}
   }, [scenarios]);
 
   const updateFee = (cat, idx, field, value) => {
@@ -108,18 +139,53 @@ export function useCalculatorState() {
 
   const updateGlobal = (key, value) => {
     setState((prev) => {
+      const capacity = prev.cartonFormats.reduce((s, f) => s + f.qty, 0);
       const newGlobals = { ...prev.globals, [key]: Number(value) || 0 };
-      if (key === 'capacity' && newGlobals.sold > newGlobals.capacity) {
-        newGlobals.sold = newGlobals.capacity;
-      }
+      if (key === 'sold' && newGlobals.sold > capacity) newGlobals.sold = capacity;
       return { ...prev, globals: newGlobals };
     });
+  };
+
+  const setContainerType = (type) => {
+    setState((prev) => {
+      const maxVol = getMaxUsableVolume(type);
+      // Cap each format's qty so total volume stays within new container
+      let remaining = maxVol;
+      const newFormats = prev.cartonFormats.map((f) => {
+        const vol = cartonVolume(f.l, f.w, f.h);
+        const maxQty = vol > 0 ? Math.floor(remaining / vol) : 0;
+        const qty = Math.min(f.qty, maxQty);
+        remaining -= qty * vol;
+        return { ...f, qty };
+      });
+      return capSold({ ...prev, containerType: type, cartonFormats: newFormats });
+    });
+  };
+
+  const addCartonFormat = (format) => {
+    setState((prev) => capSold({ ...prev, cartonFormats: [...prev.cartonFormats, format] }));
+  };
+
+  const updateCartonFormat = (idx, field, value) => {
+    setState((prev) => {
+      const newFormats = [...prev.cartonFormats];
+      newFormats[idx] = { ...newFormats[idx], [field]: value };
+      return capSold({ ...prev, cartonFormats: newFormats });
+    });
+  };
+
+  const removeCartonFormat = (idx) => {
+    setState((prev) =>
+      capSold({ ...prev, cartonFormats: prev.cartonFormats.filter((_, i) => i !== idx) })
+    );
   };
 
   const reset = () => {
     if (confirm('Réinitialiser toutes les valeurs aux paramètres par défaut ?')) {
       localStorage.removeItem(STORAGE_KEY);
       setState({
+        containerType: defaultContainerType,
+        cartonFormats: JSON.parse(JSON.stringify(defaultCartonFormats)),
         fees: JSON.parse(JSON.stringify(defaultFees)),
         custom: [],
         globals: { ...defaultGlobals },
@@ -129,14 +195,13 @@ export function useCalculatorState() {
 
   const saveScenario = (name) => {
     if (scenarios.length >= 3) return false;
-    const scenario = { name, state: JSON.parse(JSON.stringify(state)), savedAt: Date.now() };
-    setScenarios((prev) => [...prev, scenario]);
+    setScenarios((prev) => [...prev, { name, state: JSON.parse(JSON.stringify(state)), savedAt: Date.now() }]);
     return true;
   };
 
   const loadScenario = (idx) => {
-    const scenario = scenarios[idx];
-    if (scenario) setState(scenario.state);
+    const s = scenarios[idx];
+    if (s) setState(migrate(JSON.parse(JSON.stringify(s.state))));
   };
 
   const deleteScenario = (idx) => {
@@ -144,16 +209,9 @@ export function useCalculatorState() {
   };
 
   return {
-    state,
-    scenarios,
-    updateFee,
-    updateCustom,
-    addCustom,
-    removeCustom,
-    updateGlobal,
-    reset,
-    saveScenario,
-    loadScenario,
-    deleteScenario,
+    state, scenarios,
+    updateFee, updateCustom, addCustom, removeCustom, updateGlobal,
+    setContainerType, addCartonFormat, updateCartonFormat, removeCartonFormat,
+    reset, saveScenario, loadScenario, deleteScenario,
   };
 }

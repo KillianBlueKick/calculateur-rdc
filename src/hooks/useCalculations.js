@@ -1,17 +1,17 @@
 import { getContainerVolume, getMaxUsableVolume, cartonVolume } from '../data/containers';
 
 export function useCalculations(state) {
-  const { fees, custom, globals, containerType, cartonFormats } = state;
+  const { fees, custom, containerType, cartonFormats } = state;
 
   // --- Container & carton volumes ---
   const containerVol = getContainerVolume(containerType);
   const maxUsableVol = getMaxUsableVolume(containerType);
   const usedVol      = cartonFormats.reduce((s, f) => s + f.qty * cartonVolume(f.l, f.w, f.h), 0);
   const capacity     = cartonFormats.reduce((s, f) => s + f.qty, 0);
+  const revenue      = cartonFormats.reduce((s, f) => s + f.qty * (f.price ?? 0), 0);
 
-  const weightedPrice = capacity > 0
-    ? cartonFormats.reduce((s, f) => s + f.qty * (f.price ?? 0), 0) / capacity
-    : 0;
+  const weightedPrice = capacity > 0 ? revenue / capacity : 0;
+  const fillPct       = maxUsableVol > 0 ? Math.min((usedVol / maxUsableVol) * 100, 100) : 0;
 
   // --- Fee totals ---
   const sumCat = (cat) =>
@@ -30,15 +30,11 @@ export function useCalculations(state) {
     .reduce((s, f) => s + (Number(f.amount) || 0), 0);
 
   const variableCost          = totalBE + totalMar + totalRDC + customPerContainer;
-  const fixedCostPerContainer = (totalFixes + customMonthly) / Math.max(globals.containers, 0.1);
+  const fixedCostPerContainer = totalFixes + customMonthly;
   const totalCost             = variableCost + fixedCostPerContainer;
 
-  // --- Sales simulation ---
-  const cartonsSold    = Math.min(globals.sold, capacity);
-  const fillPct        = capacity > 0 ? (cartonsSold / capacity) * 100 : 0;
-  const revenue        = cartonsSold * weightedPrice;
-  const profit         = revenue - totalCost;
-
+  const cartonsSold      = capacity;
+  const profit           = revenue - totalCost;
   const costPerCarton    = capacity > 0 ? variableCost / capacity : 0;
   const marginPerCarton  = weightedPrice - costPerCarton;
   const breakEvenCartons = weightedPrice > 0 ? Math.ceil(totalCost / weightedPrice) : 0;
@@ -48,10 +44,10 @@ export function useCalculations(state) {
   const progressPct      = breakEvenCartons > 0 ? Math.min(100, (cartonsSold / breakEvenCartons) * 100) : 100;
 
   return {
-    containerVol, maxUsableVol, usedVol, capacity, weightedPrice,
+    containerVol, maxUsableVol, usedVol, capacity, weightedPrice, fillPct,
     totalBE, totalMar, totalRDC, totalFixes,
     variableCost, fixedCostPerContainer, totalCost,
-    cartonsSold, fillPct, revenue, profit,
+    cartonsSold, revenue, profit,
     costPerCarton, marginPerCarton,
     breakEvenCartons, breakEvenPct, cartonsMissing, marginPct, progressPct,
   };

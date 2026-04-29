@@ -12,20 +12,13 @@ import ScenarioManager from './ScenarioManager';
 export default function Calculator() {
   const {
     state, scenarios,
-    updateFee, updateCustom, addCustom, removeCustom, updateGlobal,
+    updateFee, updateCustom, addCustom, removeCustom,
     setContainerType, addCartonFormat, updateCartonFormat, removeCartonFormat,
     reset, saveScenario, loadScenario, deleteScenario,
   } = useCalculatorState();
 
   const calcs = useCalculations(state);
   const [activeTab, setActiveTab] = useState('config');
-
-  const setQuickFill = (type) => {
-    const newSold = type === 'be'
-      ? calcs.breakEvenCartons
-      : Math.round((calcs.capacity * type) / 100);
-    updateGlobal('sold', newSold);
-  };
 
   const isMobileResults = activeTab === 'results';
 
@@ -64,13 +57,8 @@ export default function Calculator() {
           <ContainerSelector
             value={state.containerType}
             onChange={setContainerType}
-            globals={state.globals}
             capacity={calcs.capacity}
             fillPct={calcs.fillPct}
-            cartonsSold={calcs.cartonsSold}
-            breakEvenCartons={calcs.breakEvenCartons}
-            onUpdateGlobal={updateGlobal}
-            onQuickFill={setQuickFill}
           />
 
           <CartonConfig

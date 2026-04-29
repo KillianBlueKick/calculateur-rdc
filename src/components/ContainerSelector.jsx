@@ -1,17 +1,6 @@
 import { CONTAINERS, getContainerVolume } from '../data/containers';
 
-const QUICK_FILLS = [
-  { label: 'Seuil', val: 'be'  },
-  { label: '50%',   val: 50    },
-  { label: '80%',   val: 80    },
-  { label: 'Plein', val: 100   },
-];
-
-export default function ContainerSelector({
-  value, onChange,
-  globals, capacity, fillPct, cartonsSold, breakEvenCartons,
-  onUpdateGlobal, onQuickFill,
-}) {
+export default function ContainerSelector({ value, onChange, capacity, fillPct }) {
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-4 mb-3">
       <h3 className="text-sm font-medium mb-3">Taille du conteneur</h3>
@@ -52,55 +41,17 @@ export default function ContainerSelector({
         })}
       </div>
 
-      <p className="text-xs text-slate-400 mb-4 text-center">{CONTAINERS[value].sublabel} — intérieur utile</p>
+      <p className="text-xs text-slate-400 mb-3 text-center">{CONTAINERS[value].sublabel} — intérieur utile</p>
 
-      <div className="border-t border-slate-100 pt-3 space-y-2">
-        {/* Conteneurs par mois */}
-        <div className="flex justify-between items-center">
-          <span className="text-sm">Conteneurs par mois</span>
-          <input
-            type="number"
-            value={globals.containers}
-            step={0.5}
-            min={0}
-            onChange={(e) => onUpdateGlobal('containers', e.target.value)}
-            className="w-24 px-2 py-1.5 text-sm text-right border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-400"
-          />
-        </div>
-
-        {/* Cartons vendus */}
-        <div className="flex justify-between items-center">
-          <span className="text-sm">Cartons vendus (simulation)</span>
-          <input
-            type="number"
-            value={globals.sold}
-            step={10}
-            min={0}
-            max={capacity}
-            onChange={(e) => onUpdateGlobal('sold', e.target.value)}
-            className="w-24 px-2 py-1.5 text-sm text-right border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-400"
-          />
-        </div>
+      {/* Stats */}
+      <div className="border-t border-slate-100 pt-3 flex justify-between items-center">
+        <span className="text-sm text-slate-500">Total cartons</span>
+        <span className="text-sm font-semibold text-slate-700">{capacity} cartons</span>
       </div>
-
-      {/* Quick fill buttons */}
-      <div className="flex gap-1.5 mt-3">
-        {QUICK_FILLS.map((b) => (
-          <button
-            key={b.label}
-            onClick={() => onQuickFill(b.val)}
-            className="flex-1 py-1.5 text-xs border border-slate-200 rounded-md hover:bg-slate-50 active:bg-slate-100 transition-colors font-medium"
-          >
-            {b.label}
-          </button>
-        ))}
+      <div className="flex justify-between items-center mt-1">
+        <span className="text-sm text-slate-500">Volume utilisé</span>
+        <span className="text-sm font-semibold text-slate-700">{Math.round(fillPct)}%</span>
       </div>
-
-      {/* Fill info */}
-      <p className="text-sm text-slate-500 mt-3">
-        Remplissage : <span className="font-medium text-slate-700">{Math.round(fillPct)}%</span>{' '}
-        ({cartonsSold}/{capacity} cartons)
-      </p>
     </div>
   );
 }

@@ -42,8 +42,7 @@ export const defaultFees = {
   ],
 };
 
-// price removed — now per carton format
-export const defaultGlobals = { containers: 1, sold: 430 };
+export const defaultGlobals = {};
 
 export const defaultCartonFormats = [
   { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: 430, price: 100, isPreset: true, presetId: 'standard' },
@@ -99,13 +98,6 @@ function loadScenarios() {
   return [];
 }
 
-function capSold(state) {
-  const capacity = state.cartonFormats.reduce((s, f) => s + f.qty, 0);
-  if (state.globals.sold > capacity) {
-    return { ...state, globals: { ...state.globals, sold: capacity } };
-  }
-  return state;
-}
 
 export function useCalculatorState() {
   const [state, setState] = useState(loadInitialState);
@@ -146,15 +138,6 @@ export function useCalculatorState() {
     setState((prev) => ({ ...prev, custom: prev.custom.filter((_, i) => i !== idx) }));
   };
 
-  const updateGlobal = (key, value) => {
-    setState((prev) => {
-      const capacity = prev.cartonFormats.reduce((s, f) => s + f.qty, 0);
-      const newGlobals = { ...prev.globals, [key]: Number(value) || 0 };
-      if (key === 'sold' && newGlobals.sold > capacity) newGlobals.sold = capacity;
-      return { ...prev, globals: newGlobals };
-    });
-  };
-
   const setContainerType = (type) => {
     setState((prev) => {
       const maxVol = getMaxUsableVolume(type);
@@ -166,26 +149,24 @@ export function useCalculatorState() {
         remaining -= qty * vol;
         return { ...f, qty };
       });
-      return capSold({ ...prev, containerType: type, cartonFormats: newFormats });
+      return { ...prev, containerType: type, cartonFormats: newFormats };
     });
   };
 
   const addCartonFormat = (format) => {
-    setState((prev) => capSold({ ...prev, cartonFormats: [...prev.cartonFormats, format] }));
+    setState((prev) => ({ ...prev, cartonFormats: [...prev.cartonFormats, format] }));
   };
 
   const updateCartonFormat = (idx, field, value) => {
     setState((prev) => {
       const newFormats = [...prev.cartonFormats];
       newFormats[idx] = { ...newFormats[idx], [field]: value };
-      return capSold({ ...prev, cartonFormats: newFormats });
+      return { ...prev, cartonFormats: newFormats };
     });
   };
 
   const removeCartonFormat = (idx) => {
-    setState((prev) =>
-      capSold({ ...prev, cartonFormats: prev.cartonFormats.filter((_, i) => i !== idx) })
-    );
+    setState((prev) => ({ ...prev, cartonFormats: prev.cartonFormats.filter((_, i) => i !== idx) }));
   };
 
   const reset = () => {
@@ -218,7 +199,7 @@ export function useCalculatorState() {
 
   return {
     state, scenarios,
-    updateFee, updateCustom, addCustom, removeCustom, updateGlobal,
+    updateFee, updateCustom, addCustom, removeCustom,
     setContainerType, addCartonFormat, updateCartonFormat, removeCartonFormat,
     reset, saveScenario, loadScenario, deleteScenario,
   };

@@ -56,16 +56,14 @@ export default function ScenarioManager({ scenarios, profit, onSave, onLoad, onD
       {scenarios.map((s, idx) => {
         const scenarioProfit = s.state
           ? (() => {
-              const { fees, custom, globals, cartonFormats = [] } = s.state;
+              const { fees, custom, cartonFormats = [] } = s.state;
               const sumCat = (cat) =>
                 fees[cat].filter((f) => f.enabled).reduce((acc, f) => acc + (Number(f.amount) || 0), 0);
               const variable = sumCat('belgique') + sumCat('maritime') + sumCat('rdc') +
                 custom.filter((f) => f.enabled && !f.isMonthly).reduce((acc, f) => acc + (Number(f.amount) || 0), 0);
-              const fixed = (sumCat('fixes') + custom.filter((f) => f.enabled && f.isMonthly).reduce((acc, f) => acc + (Number(f.amount) || 0), 0)) / Math.max(globals.containers, 0.1);
-              const total = variable + fixed;
-              const capacity = cartonFormats.reduce((acc, f) => acc + f.qty, 0) || globals.capacity || 0;
-              const sold = Math.min(globals.sold, capacity);
-              return sold * globals.price - total;
+              const fixed = sumCat('fixes') + custom.filter((f) => f.enabled && f.isMonthly).reduce((acc, f) => acc + (Number(f.amount) || 0), 0);
+              const rev = cartonFormats.reduce((acc, f) => acc + f.qty * (f.price ?? 0), 0);
+              return rev - variable - fixed;
             })()
           : 0;
 

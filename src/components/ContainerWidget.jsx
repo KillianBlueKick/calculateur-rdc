@@ -1,9 +1,6 @@
 export default function ContainerWidget({ cartonsSold, capacity, usedVol, containerVol }) {
-  const fillRatio = capacity > 0 ? Math.min(cartonsSold / capacity, 1) : 0;
+  const fillRatio = containerVol > 0 ? Math.min(usedVol / containerVol, 1) : 0;
   const pct = Math.round(fillRatio * 100);
-
-  // m³ proportional to sold cartons
-  const soldVol = capacity > 0 ? (cartonsSold / capacity) * usedVol : 0;
 
   const W = 400;
   const H = 110;
@@ -87,10 +84,10 @@ export default function ContainerWidget({ cartonsSold, capacity, usedVol, contai
       <div className="flex items-center justify-between mt-2 text-xs">
         <span className="text-slate-500">
           Volume occupé :
-          <span className="font-semibold text-slate-700 ml-1">{soldVol.toFixed(1)} m³</span>
+          <span className="font-semibold text-slate-700 ml-1">{usedVol.toFixed(1)} m³</span>
           <span className="text-slate-400 ml-1">/ {containerVol.toFixed(1)} m³ totaux</span>
         </span>
-        <span className="text-slate-400">{cartonsSold} / {capacity} cartons</span>
+        <span className="text-slate-400">{cartonsSold} cartons</span>
       </div>
 
       {/* Progress bar */}

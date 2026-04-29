@@ -4,7 +4,6 @@ import { useCalculatorState } from '../hooks/useCalculatorState';
 import { useCalculations } from '../hooks/useCalculations';
 import ContainerSelector from './ContainerSelector';
 import CartonConfig from './CartonConfig';
-import GlobalParams from './GlobalParams';
 import FeeSection from './FeeSection';
 import CustomFees from './CustomFees';
 import ResultsPanel from './ResultsPanel';
@@ -58,13 +57,21 @@ export default function Calculator() {
         </div>
       </div>
 
-      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column */}
         <div className={isMobileResults ? 'hidden lg:block' : ''}>
 
-          {/* Container + carton config */}
-          <ContainerSelector value={state.containerType} onChange={setContainerType} />
+          <ContainerSelector
+            value={state.containerType}
+            onChange={setContainerType}
+            globals={state.globals}
+            capacity={calcs.capacity}
+            fillPct={calcs.fillPct}
+            cartonsSold={calcs.cartonsSold}
+            breakEvenCartons={calcs.breakEvenCartons}
+            onUpdateGlobal={updateGlobal}
+            onQuickFill={setQuickFill}
+          />
 
           <CartonConfig
             formats={state.cartonFormats}
@@ -75,20 +82,10 @@ export default function Calculator() {
             onRemove={removeCartonFormat}
           />
 
-          <GlobalParams
-            globals={state.globals}
-            capacity={calcs.capacity}
-            fillPct={calcs.fillPct}
-            cartonsSold={calcs.cartonsSold}
-            breakEvenCartons={calcs.breakEvenCartons}
-            onUpdate={updateGlobal}
-            onQuickFill={setQuickFill}
-          />
-
-          <FeeSection title="Frais Belgique"          total={calcs.totalBE}    fees={state.fees.belgique} cat="belgique" onUpdate={updateFee} defaultOpen={true}  />
-          <FeeSection title="Fret maritime (Remant)"  total={calcs.totalMar}   fees={state.fees.maritime} cat="maritime" onUpdate={updateFee} defaultOpen={false} />
-          <FeeSection title="Frais RDC"               total={calcs.totalRDC}   fees={state.fees.rdc}      cat="rdc"      onUpdate={updateFee} defaultOpen={false} />
-          <FeeSection title="Frais fixes mensuels"    total={calcs.totalFixes} fees={state.fees.fixes}    cat="fixes"    onUpdate={updateFee} defaultOpen={false} totalSuffix="/mois" />
+          <FeeSection title="Frais Belgique"         total={calcs.totalBE}    fees={state.fees.belgique} cat="belgique" onUpdate={updateFee} defaultOpen={true}  />
+          <FeeSection title="Fret maritime (Remant)" total={calcs.totalMar}   fees={state.fees.maritime} cat="maritime" onUpdate={updateFee} defaultOpen={false} />
+          <FeeSection title="Frais RDC"              total={calcs.totalRDC}   fees={state.fees.rdc}      cat="rdc"      onUpdate={updateFee} defaultOpen={false} />
+          <FeeSection title="Frais fixes mensuels"   total={calcs.totalFixes} fees={state.fees.fixes}    cat="fixes"    onUpdate={updateFee} defaultOpen={false} totalSuffix="/mois" />
 
           <CustomFees custom={state.custom} onUpdate={updateCustom} onAdd={addCustom} onRemove={removeCustom} />
 

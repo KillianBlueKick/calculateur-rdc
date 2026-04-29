@@ -19,7 +19,7 @@ export default function ResultsPanel({ calcs, globals }) {
     revenue, totalCost, variableCost, fixedCostPerContainer,
     profit, marginPct, cartonsSold, breakEvenCartons, breakEvenPct,
     cartonsMissing, progressPct, marginPerCarton, costPerCarton,
-    fillPct, capacity,
+    fillPct, capacity, weightedPrice,
   } = calcs;
 
   const badge = marginBadge(marginPct);
@@ -52,7 +52,7 @@ export default function ResultsPanel({ calcs, globals }) {
         <p className="text-xs text-slate-500 mb-1">Revenu</p>
         <p className="text-2xl font-semibold text-emerald-600">{fmt(revenue)}</p>
         <p className="text-xs text-slate-400 mt-1">
-          {cartonsSold} cartons × €{globals.price}
+          {cartonsSold} cartons × €{Math.round(weightedPrice * 100) / 100}
         </p>
       </div>
 

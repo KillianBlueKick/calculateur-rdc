@@ -42,28 +42,37 @@ export const defaultFees = {
   ],
 };
 
-export const defaultGlobals = { price: 100, containers: 1, sold: 430 };
+// price removed — now per carton format
+export const defaultGlobals = { containers: 1, sold: 430 };
 
 export const defaultCartonFormats = [
-  { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: 430, isPreset: true, presetId: 'standard' },
+  { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: 430, price: 100, isPreset: true, presetId: 'standard' },
 ];
 
 export const defaultContainerType = '40hc';
 
 function migrate(saved) {
-  // Add containerType if missing (old saves)
   if (!saved.containerType) saved.containerType = defaultContainerType;
 
-  // Add cartonFormats if missing — migrate from old globals.capacity
   if (!saved.cartonFormats) {
     const oldCapacity = saved.globals?.capacity ?? 430;
+    const oldPrice = saved.globals?.price ?? 100;
     saved.cartonFormats = [
-      { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: oldCapacity, isPreset: true, presetId: 'standard' },
+      { id: 'init-std', label: 'Standard', l: 60, w: 55, h: 40, qty: oldCapacity, price: oldPrice, isPreset: true, presetId: 'standard' },
     ];
   }
 
-  // Remove legacy capacity from globals
-  if (saved.globals) delete saved.globals.capacity;
+  // Add price field to formats that don't have it (older saves)
+  const fallbackPrice = saved.globals?.price ?? 100;
+  saved.cartonFormats = saved.cartonFormats.map((f) =>
+    f.price === undefined ? { ...f, price: fallbackPrice } : f
+  );
+
+  // Remove legacy fields from globals
+  if (saved.globals) {
+    delete saved.globals.capacity;
+    delete saved.globals.price;
+  }
 
   return saved;
 }
@@ -149,7 +158,6 @@ export function useCalculatorState() {
   const setContainerType = (type) => {
     setState((prev) => {
       const maxVol = getMaxUsableVolume(type);
-      // Cap each format's qty so total volume stays within new container
       let remaining = maxVol;
       const newFormats = prev.cartonFormats.map((f) => {
         const vol = cartonVolume(f.l, f.w, f.h);

@@ -33,20 +33,20 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
   const [selectedPreset, setSelectedPreset] = useState('standard');
 
   const volPct = maxUsableVol > 0 ? Math.min((usedVol / maxUsableVol) * 100, 100) : 0;
-  const isOverflow = usedVol > maxUsableVol;
+  const isOverflow = usedVol > maxUsableVol + 0.001;
   const remaining = Math.max(0, maxUsableVol - usedVol);
 
   const handleAddPreset = () => {
     const preset = CARTON_PRESETS.find((p) => p.id === selectedPreset);
     if (!preset) return;
     const vol = cartonVolume(preset.l, preset.w, preset.h);
-    const maxQty = Math.floor(remaining / vol);
-    if (maxQty <= 0 && usedVol > 0) return; // container full
+    const maxQty = vol > 0 ? Math.floor(remaining / vol) : 0;
     onAdd({
       id: Date.now(),
       label: preset.label,
       l: preset.l, w: preset.w, h: preset.h,
       qty: Math.min(1, maxQty),
+      price: 100,
       isPreset: true,
       presetId: preset.id,
     });
@@ -58,6 +58,7 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
       label: 'Personnalisé',
       l: 40, w: 30, h: 30,
       qty: 0,
+      price: 100,
       isPreset: false,
       presetId: null,
     });
@@ -65,14 +66,14 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
 
   const canIncreaseQty = (format) => {
     const vol = cartonVolume(format.l, format.w, format.h);
-    return usedVol + vol <= maxUsableVol + 0.0001; // small float tolerance
+    return usedVol + vol <= maxUsableVol + 0.0001;
   };
 
   const handleQtyChange = (idx, newQty) => {
     const format = formats[idx];
     const vol = cartonVolume(format.l, format.w, format.h);
     const otherVol = usedVol - format.qty * vol;
-    const maxQty = Math.floor((maxUsableVol - otherVol) / vol);
+    const maxQty = vol > 0 ? Math.floor((maxUsableVol - otherVol) / vol) : 0;
     onUpdate(idx, 'qty', Math.min(newQty, Math.max(0, maxQty)));
   };
 
@@ -80,7 +81,7 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
     <div className="bg-white border border-slate-200 rounded-lg p-4 mb-3">
       <h3 className="text-sm font-medium mb-3">Types de cartons</h3>
 
-      {/* Add preset row */}
+      {/* Add row */}
       <div className="flex gap-2 mb-3">
         <select
           value={selectedPreset}
@@ -88,9 +89,7 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
           className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white"
         >
           {CARTON_PRESETS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.label} — {p.l}×{p.w}×{p.h} cm
-            </option>
+            <option key={p.id} value={p.id}>{p.label} — {p.l}×{p.w}×{p.h} cm</option>
           ))}
         </select>
         <button
@@ -108,7 +107,6 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
         </button>
       </div>
 
-      {/* Format rows */}
       {formats.length === 0 && (
         <p className="text-xs text-slate-400 italic py-2">Aucun format — ajoutez-en un ci-dessus.</p>
       )}
@@ -120,7 +118,7 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
 
           return (
             <div key={f.id} className="border border-slate-100 rounded-lg p-2.5 bg-slate-50">
-              {/* Row 1: label + delete */}
+              {/* Label + delete */}
               <div className="flex items-center justify-between mb-2">
                 {f.isPreset ? (
                   <span className="text-sm font-medium text-slate-700">{f.label}</span>
@@ -137,7 +135,7 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
                 </button>
               </div>
 
-              {/* Row 2: dimensions */}
+              {/* Dimensions */}
               {f.isPreset ? (
                 <p className="text-xs text-slate-400 mb-2">
                   {f.l} × {f.w} × {f.h} cm &nbsp;·&nbsp; {(vol * 1000).toFixed(1)} L / carton
@@ -161,17 +159,32 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
                 </div>
               )}
 
-              {/* Row 3: qty stepper */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Quantité</span>
-                <QtyStep
-                  value={f.qty}
-                  onChange={(v) => handleQtyChange(idx, v)}
-                  canIncrease={canIncrease}
-                />
+              {/* Prix + Quantité sur la même ligne */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">Prix</span>
+                  <div className="flex items-center gap-0.5">
+                    <input
+                      type="number"
+                      value={f.price ?? 100}
+                      min={0}
+                      step={1}
+                      onChange={(e) => onUpdate(idx, 'price', Number(e.target.value) || 0)}
+                      className="w-16 px-1.5 py-1 text-xs text-right border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    />
+                    <span className="text-xs text-slate-400">€</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">Qté</span>
+                  <QtyStep
+                    value={f.qty}
+                    onChange={(v) => handleQtyChange(idx, v)}
+                    canIncrease={canIncrease}
+                  />
+                </div>
               </div>
 
-              {/* Per-format volume */}
               <p className="text-xs text-slate-400 mt-1 text-right">
                 {(f.qty * vol).toFixed(2)} m³
               </p>
@@ -182,7 +195,6 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
 
       {/* Volume summary */}
       <div className="mt-3 pt-3 border-t border-slate-100">
-        {/* Bar */}
         <div className="h-2 bg-slate-200 rounded-full overflow-hidden mb-1.5">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
@@ -194,17 +206,13 @@ export default function CartonConfig({ formats, usedVol, maxUsableVol, onAdd, on
         <div className="flex justify-between items-center text-xs">
           <span className={isOverflow ? 'text-red-600 font-medium' : 'text-slate-500'}>
             {isOverflow && <AlertTriangle size={11} className="inline mr-1" />}
-            {usedVol.toFixed(2)} m³ utilisés / {maxUsableVol.toFixed(2)} m³ max
+            {usedVol.toFixed(2)} m³ / {maxUsableVol.toFixed(2)} m³ max
           </span>
           <span className="font-semibold text-slate-700">
             {formats.reduce((s, f) => s + f.qty, 0)} cartons
           </span>
         </div>
-        {isOverflow && (
-          <p className="text-xs text-red-600 mt-1">
-            Volume dépassé — réduisez les quantités.
-          </p>
-        )}
+        {isOverflow && <p className="text-xs text-red-600 mt-1">Volume dépassé — réduisez les quantités.</p>}
       </div>
     </div>
   );
